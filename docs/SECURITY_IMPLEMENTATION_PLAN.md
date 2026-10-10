@@ -20,7 +20,10 @@ Branch: security/phase-1-authz-baseline
 - [ ] Verify existing admin account and remove published credentials; rotate if still valid.
 
 ## Phase 3 — Data integrity
-- [ ] Move authoritative score, achievement, and quiz-completion updates to a trusted backend or another verifiable design.
+- [x] Add a server-side quiz session/submission endpoint using Firebase Admin SDK; authoritative scoring and progress writes are performed server-side in the proposed branch.
+- [ ] Verify the Vercel runtime has the required Firebase Admin service-account environment variable configured without exposing its value.
+- [ ] Test duplicate submissions, expired sessions, invalid answers, and account ownership against a non-production project.
+- [ ] Verify current progress and achievement behavior against all quiz types before deployment.
 - [ ] Validate permitted fields and prevent mass assignment.
 - [ ] Add regression tests for existing learning/progress behavior.
 
