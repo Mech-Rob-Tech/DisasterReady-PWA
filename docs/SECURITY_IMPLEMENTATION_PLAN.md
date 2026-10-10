@@ -1,6 +1,6 @@
 # Edu-Shield Security Implementation Plan
 
-Status: draft plan; no production configuration changed.
+Status: implementation in progress on a non-production security branch; no production configuration changed.
 Branch: security/phase-1-authz-baseline
 
 ## Phase 1 — Repository and configuration baseline
@@ -13,14 +13,16 @@ Branch: security/phase-1-authz-baseline
 - [ ] Inventory all Firestore reads/writes and existing user document shapes.
 
 ## Phase 2 — Authentication and authorization
-- [ ] Replace frontend-selected admin role with trusted authorization.
-- [ ] Establish admin claim or trusted membership records using Firebase Admin SDK in a trusted environment.
+- [x] Replace frontend-selected admin role with trusted authorization in the proposed frontend branch.
+- [x] Add a trusted Firebase Admin SDK script to provision the admin claim; actual claim provisioning remains an operator action.
 - [ ] Define organization-scoped roles: platform admin, organization admin, teacher, student.
 - [ ] Test owner-only access and cross-tenant denial in Firebase Emulator Suite.
 - [ ] Verify existing admin account and remove published credentials; rotate if still valid.
 
 ## Phase 3 — Data integrity
 - [x] Add a server-side quiz session/submission endpoint using Firebase Admin SDK; authoritative scoring and progress writes are performed server-side in the proposed branch.
+- [x] Move the answer key into a server-only module and remove direct client-side score/achievement/progress write methods.
+- [x] Require verified, non-revoked Firebase ID tokens for quiz API calls.
 - [ ] Verify the Vercel runtime has the required Firebase Admin service-account environment variable configured without exposing its value.
 - [ ] Test duplicate submissions, expired sessions, invalid answers, and account ownership against a non-production project.
 - [ ] Verify current progress and achievement behavior against all quiz types before deployment.
@@ -37,7 +39,7 @@ Branch: security/phase-1-authz-baseline
 ## Phase 5 — Repository automation
 - [ ] Enable available GitHub secret scanning and push protection.
 - [ ] Add CodeQL, Dependabot, and GitHub Actions workflow scanning as supported.
-- [ ] Add automated authorization tests to CI.
+- [x] Add Firestore authorization rules tests to CI; backend integration tests are still pending.
 - [ ] Protect main and sensitive workflow/rules files.
 
 ## Phase 6 — Multi-school model
