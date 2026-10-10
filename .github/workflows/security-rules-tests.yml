@@ -33,6 +33,7 @@ jobs:
         run: |
           node --check api/quiz.js
           node --check api/quiz-bank.js
+          node --check scripts/grant-admin-claim.js
           node --check data.js
           node --check app.js
           node --check ui.js
