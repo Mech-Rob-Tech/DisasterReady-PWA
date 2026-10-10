@@ -1,5 +1,5 @@
 import { db } from './firebase.js';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { localDB as defaultDB } from './data.js';
 
 const localDataService = {
@@ -51,49 +51,9 @@ const localDataService = {
         }
     },
 
-    // UPDATE SCORE in Firestore
-    updateUserScore: async (appId, points) => {
-        if (!localDataService._userId) return;
-        const userDocRef = doc(db, "users", localDataService._userId);
-        const docSnap = await getDoc(userDocRef);
-
-        if (docSnap.exists()) {
-            const currentScore = docSnap.data().score || 0;
-            await updateDoc(userDocRef, {
-                score: currentScore + points
-            });
-        }
-    },
-
-    // AWARD ACHIEVEMENT in Firestore
-    awardUserAchievement: async (appId, achievementId) => {
-        if (!localDataService._userId) return;
-        const userDocRef = doc(db, "users", localDataService._userId);
-        const docSnap = await getDoc(userDocRef);
-
-        if (docSnap.exists()) {
-            const achievements = docSnap.data().achievements || [];
-            if (!achievements.includes(achievementId)) {
-                achievements.push(achievementId);
-                await updateDoc(userDocRef, { achievements });
-            }
-        }
-    },
-
-    // MARK QUIZ AS COMPLETED in Firestore
-    markQuizAsCompleted: async (appId, quizType) => {
-        if (!localDataService._userId) return;
-        const userDocRef = doc(db, "users", localDataService._userId);
-        const docSnap = await getDoc(userDocRef);
-
-        if (docSnap.exists()) {
-            const completedQuizzes = docSnap.data().completedQuizzes || [];
-            if (!completedQuizzes.includes(quizType)) {
-                completedQuizzes.push(quizType);
-                await updateDoc(userDocRef, { completedQuizzes });
-            }
-        }
-    },
+    // Authoritative scores, quiz completion, and achievements are written by
+    // the authenticated server endpoint in api/quiz.js using Firebase Admin SDK.
+    // Do not add client-side writes for these protected fields.
     
     // These functions are kept to prevent errors but are no longer central to the logic
     initialize: () => {},

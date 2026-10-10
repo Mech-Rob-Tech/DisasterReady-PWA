@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Transitional global-admin claim. Do not grant this claim from client code.
+    // School-scoped membership authorization will replace this for multi-tenant access.
+    function isPlatformAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    match /users/{userId} {
+      // A user may read their own profile. Privileged readers require a trusted claim.
+      allow get: if signedIn() && (request.auth.uid == userId || isPlatformAdmin());
+
+      // Prevent authenticated students from enumerating the entire users collection.
+      allow list: if isPlatformAdmin();
+
+      // Permit only a new default progress profile from its owner.
+      // The client must not create an initial elevated score or achievements.
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'score', 'achievements', 'completedQuizzes', 'lastActive'
+        ])
+        && request.resource.data.score == 0
+        && request.resource.data.achievements == []
+        && request.resource.data.completedQuizzes == []
+        && request.resource.data.lastActive is string;
+
+      // Transitional safe policy: clients may update lastActive only.
+      // Score, achievements and completedQuizzes must move to trusted backend
+      // operations before this policy can be deployed without breaking quiz progress.
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActive'])
+        && request.resource.data.lastActive is string;
+
+      // Account deletion and privileged mutations must use a trusted workflow.
+      allow delete: if false;
+    }
+
+    // Deny access to all collections not explicitly covered above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
