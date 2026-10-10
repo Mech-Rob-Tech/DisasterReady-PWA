@@ -23,7 +23,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeba8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Set up Java for Firestore emulator
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v4
