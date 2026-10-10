@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
-import { quizBank } from "../data.js";
+import { quizBank } from "./quiz-bank.js";
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const QUESTIONS_PER_QUIZ = 10;
