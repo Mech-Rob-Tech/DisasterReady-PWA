@@ -29,5 +29,9 @@ jobs:
           java-version: '21'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Check JavaScript syntax\n        run: |\n          node --check api/quiz.js\n          node --check app.js\n          node --check ui.js\n\n      - name: Run Firestore rules tests
+      - name: Check JavaScript syntax
+        run: |
+          node --check api/quiz.js
+          node --check app.js
+          node --check ui.js\n\n      - name: Run Firestore rules tests
         run: npm run test:security
