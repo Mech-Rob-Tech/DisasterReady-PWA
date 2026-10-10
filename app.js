@@ -22,17 +22,28 @@ let state = {
 };
 
 // --- App Initialization ---
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     localDataService.initialize();
     if (user) {
         state.isAuthReady = true;
         state.userId = user.uid;
         localDataService.setUserId(user.uid);
-        state.userRole = localStorage.getItem('userRole') || 'student';
-        renderApp();
+        try {
+            const tokenResult = await user.getIdTokenResult();
+            // The signed Firebase custom claim is authoritative; localStorage and
+            // the selected login tab must never grant administrator access.
+            state.userRole = tokenResult.claims.admin === true ? 'admin' : 'student';
+            renderApp();
+        } catch (error) {
+            console.error('Unable to verify account role:', error);
+            state.isAuthReady = false;
+            await signOut(auth);
+            showToast('Could not verify your account permissions. Please sign in again.', 'bg-red-500');
+        }
     } else {
         state.isAuthReady = false;
         state.userId = null;
+        state.userRole = 'student';
         localDataService.setUserId(null);
         renderLoginPage(handleLogin, handleSignUp, handleClearData, handleInputFocus);
     }
@@ -67,6 +78,11 @@ async function handleSignUp(role) {
     }
 
     if (!isValid) return;
+
+    if (role !== 'student') {
+        showToast('Administrator accounts must be provisioned by a trusted administrator.', 'bg-red-500');
+        return;
+    }
 
     const email = `${userId}@email.com`;
     try {
@@ -111,10 +127,17 @@ async function handleLogin(role) {
     try {
         showLoading(true);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const tokenResult = await userCredential.user.getIdTokenResult(true);
+        if (role === 'admin' && tokenResult.claims.admin !== true) {
+            await signOut(auth);
+            setInputError(idInputId, 'This account has not been granted administrator access.');
+            return;
+        }
+        // Role selection is a UI hint only. Actual authorization comes from
+        // the verified Firebase custom claim in the auth-state callback.
         state.isAuthReady = true;
         state.userId = userCredential.user.uid;
-        state.userRole = role;
-        localStorage.setItem('userRole', role);
+        state.userRole = tokenResult.claims.admin === true ? 'admin' : 'student';
         localDataService.setUserId(userCredential.user.uid);
         renderApp();
     } catch (error) {
@@ -125,7 +148,7 @@ async function handleLogin(role) {
 }
 
 function handleLogout() {
-    signOut(auth).then(() => localStorage.removeItem('userRole'));
+    signOut(auth);
 }
 
 function handleClearData() {
