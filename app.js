@@ -130,7 +130,7 @@ async function handleLogin(role) {
         const tokenResult = await userCredential.user.getIdTokenResult(true);
         if (role === 'admin' && tokenResult.claims.admin !== true) {
             await signOut(auth);
-            setInputError(idInputId, 'This account has not been granted administrator access.');
+            showToast('This account has not been granted administrator access.', 'bg-red-500');
             return;
         }
         // Role selection is a UI hint only. Actual authorization comes from
