@@ -116,7 +116,6 @@ export default async function handler(req, res) {
         return {
           question: item.q,
           options: item.a,
-          correctIndex: item.correct,
         };
       });
 
