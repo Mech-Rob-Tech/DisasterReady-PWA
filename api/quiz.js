@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     if (!match) return res.status(401).json({ error: "Authentication required" });
 
     const app = getAdminApp();
-    const decoded = await getAuth(app).verifyIdToken(match[1]);
+    const decoded = await getAuth(app).verifyIdToken(match[1], true);
     const uid = decoded.uid;
     const db = getFirestore(app);
     const body = req.body && typeof req.body === "object" ? req.body : {};
