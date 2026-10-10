@@ -16,5 +16,8 @@
     "@firebase/rules-unit-testing": "^5.0.2",
     "firebase": "^12.4.0",
     "firebase-tools": "^14.17.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
