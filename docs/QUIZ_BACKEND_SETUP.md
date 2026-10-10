@@ -7,7 +7,9 @@ Status: implementation draft on `security/phase-1-authz-baseline`. Do not deploy
 - The server selects questions and stores a short-lived session in `quizSessions`.
 - The server does not return correct answers to the browser.
 - The browser submits selected option indexes and the session ID.
-- The server verifies the Firebase ID token, checks session ownership/expiry/duplicate submission, calculates the score, and writes score/completion/achievements through a Firestore transaction.
+- The server verifies the Firebase ID token (including revocation), checks session ownership/expiry/duplicate submission, calculates the score, and writes score/completion/achievements through a Firestore transaction.
+- The frontend derives admin UI access from the verified Firebase `admin` custom claim, not from `localStorage` or the login tab.
+- `scripts/grant-admin-claim.js` provisions the admin claim from a trusted environment; never expose service-account credentials to the browser.
 - Client-side progress write methods have been removed from `service.js`.
 
 ## Required Vercel configuration
@@ -31,6 +33,8 @@ Configure a server-only environment variable named `FIREBASE_SERVICE_ACCOUNT_JSO
 - [ ] Confirm scores, completed quizzes, and achievements update once and appear in the student dashboard.
 - [ ] Confirm existing quizzes with fewer than 10 questions work.
 - [ ] Confirm logged-out users cannot start or submit quizzes.
+- [ ] Confirm a normal student cannot open the admin dashboard by selecting the Admin tab or modifying localStorage.
+- [ ] Provision the intended administrator using the trusted script, then force-refresh the ID token and verify admin access.
 - [ ] Confirm no secrets are logged or returned.
 - [ ] Run the Firestore Rules Emulator tests and syntax checks.
 
