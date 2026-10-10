@@ -33,5 +33,7 @@ jobs:
         run: |
           node --check api/quiz.js
           node --check app.js
-          node --check ui.js\n\n      - name: Run Firestore rules tests
+          node --check ui.js
+
+      - name: Run Firestore rules tests
         run: npm run test:security
