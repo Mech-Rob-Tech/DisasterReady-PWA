@@ -42,6 +42,6 @@ Configure a server-only environment variable named `FIREBASE_SERVICE_ACCOUNT_JSO
 1. The production Firestore rules must be independently verified.
 2. A valid Admin SDK credential must be configured server-side and not exposed.
 3. The backend endpoint needs integration testing against a non-production Firebase project.
-4. The current login flow still trusts a frontend-selected role for dashboard rendering; this must be corrected before relying on the admin UI.
+4. The proposed frontend now derives the admin UI from the Firebase custom claim, but it still requires end-to-end testing with a provisioned admin and a normal student account.
 5. The proposed Firestore rules intentionally deny client writes to protected progress fields. Do not deploy them until the entire existing app has been regression-tested.
 6. Do not merge or deploy this branch solely because the rules unit tests pass.
