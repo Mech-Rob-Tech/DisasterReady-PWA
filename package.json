@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test:security": "firebase emulators:exec --project demo-disasterready-security --only firestore \"node --test tests/security/firestore.rules.test.js\""
+  },
   "dependencies": {
     "@google/genai": "^0.12.0",
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.4.0",
+    "firebase-tools": "^14.17.0"
   }
 }
