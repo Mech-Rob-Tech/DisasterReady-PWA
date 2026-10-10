@@ -41,14 +41,15 @@ function pickQuestionIndexes(questions) {
   return indexes.slice(0, Math.min(QUESTIONS_PER_QUIZ, indexes.length));
 }
 
-function deriveAchievements(score, quizScore, completedQuizzes, quizType, existing) {
+function deriveAchievements(score, quizScore, maxQuizScore, completedQuizzes, quizType, existing) {
+  const perfectScore = quizScore === maxQuizScore;
   const next = new Set(Array.isArray(existing) ? existing : []);
   if (score >= 50) next.add("Fire Safety Pro");
   if (score >= 100) next.add("Earthquake Expert");
   if (score >= 150) next.add("All-Rounder");
   if (score >= 300) next.add("Safety Superstar");
   if (completedQuizzes.length > 0) next.add("Quiz Novice");
-  if (quizScore === 200) next.add("Perfect Score");
+  if (perfectScore) next.add("Perfect Score");
   if (completedQuizzes.length >= 3) next.add("Triple Threat");
   if (completedQuizzes.length >= 5) next.add("Penta-Perfect");
 
@@ -61,7 +62,7 @@ function deriveAchievements(score, quizScore, completedQuizzes, quizType, existi
     hurricane: "Hurricane Quiz Master",
     "active-shooter": "Response Protocol Master",
   };
-  if (quizScore === 200 && quizMasterAchievements[quizType]) {
+  if (perfectScore && quizMasterAchievements[quizType]) {
     next.add(quizMasterAchievements[quizType]);
   }
   if (Object.keys(quizBank).every((key) => completedQuizzes.includes(key))) {
@@ -196,6 +197,7 @@ export default async function handler(req, res) {
         const achievements = deriveAchievements(
           nextScore,
           quizScore,
+          questions.length * 20,
           completedQuizzes,
           session.quizType,
           userData.achievements
