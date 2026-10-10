@@ -161,7 +161,7 @@ async function renderStudentDashboard() {
                     renderChapterList(data, chapterEventHandlers);
                     displayBotMessage('chapterList');
                 },
-                onTakeQuiz: (quizType) => showQuizDialog(quizType, (score) => handleQuizCompletion(quizType, score))
+                onTakeQuiz: (quizType) => launchQuiz(quizType)
             });
             displayBotMessage('studentDashboard');
         }
@@ -186,7 +186,7 @@ const chapterDetailEventHandlers = {
             displayBotMessage('chapterList');
         });
     },
-    onTakeQuiz: (quizType) => showQuizDialog(quizType, (score) => handleQuizCompletion(quizType, score)),
+    onTakeQuiz: (quizType) => launchQuiz(quizType),
 };
 
 function updateAdminView() {
@@ -236,31 +236,48 @@ async function renderAdminDashboard() {
     showLoading(false);
 }
 
-function handleQuizCompletion(quizType, score) {
-    // ... (this function remains unchanged)
-    if (score > 0) {
-        localDataService.updateUserScore(state.appId, score);
-        checkAndAwardAchievements();
-        showToast(`You earned ${score} points!`, 'bg-green-500');
-        if (score >= 60) localDataService.markQuizAsCompleted(state.appId, quizType);
-        if (score === 200) {
-            localDataService.awardUserAchievement(state.appId, 'Perfect Score');
-            showToast('Perfect Score! Achievement Unlocked!', 'bg-amber-500');
-        }
+async function launchQuiz(quizType) {
+    if (!auth.currentUser) {
+        showToast('Please sign in before taking a quiz.', 'bg-red-500');
+        return;
     }
-}
 
-async function checkAndAwardAchievements() {
-    // ... (this function remains unchanged)
-    const docSnap = await localDataService.getUserDoc(state.appId);
-    if (!docSnap.exists()) return;
-    const data = docSnap.data();
-    const score = data.score || 0;
-    const achievements = data.achievements || [];
-    const level = Math.floor(score / 100) + 1;
-    if (score >= 50 && !achievements.includes('Fire Safety Pro')) localDataService.awardUserAchievement(state.appId, 'Fire Safety Pro');
-    if (score >= 100 && !achievements.includes('Earthquake Expert')) localDataService.awardUserAchievement(state.appId, 'Earthquake Expert');
-    // ... (and so on for all achievements)
+    try {
+        showLoading(true);
+        const token = await auth.currentUser.getIdToken();
+        const startResponse = await fetch('/api/quiz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ action: 'start', quizType })
+        });
+        const session = await startResponse.json();
+        if (!startResponse.ok) throw new Error(session.error || 'Could not start quiz.');
+
+        showLoading(false);
+        showQuizDialog(quizType, async ({ sessionId, answers }) => {
+            const freshToken = await auth.currentUser?.getIdToken();
+            if (!freshToken) throw new Error('Your session expired. Please sign in again.');
+            const submitResponse = await fetch('/api/quiz', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${freshToken}`
+                },
+                body: JSON.stringify({ action: 'submit', sessionId, answers })
+            });
+            const result = await submitResponse.json();
+            if (!submitResponse.ok) throw new Error(result.error || 'Quiz submission failed.');
+            showToast(`Server-verified score: ${result.score}/${result.maxScore}`, 'bg-green-500');
+            return result;
+        }, session);
+    } catch (error) {
+        showToast(error.message || 'Could not start quiz. Please try again.', 'bg-red-500');
+    } finally {
+        showLoading(false);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
