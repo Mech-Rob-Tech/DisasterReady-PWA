@@ -167,7 +167,8 @@ export default async function handler(req, res) {
         if (
           !questions.length ||
           questions.some((question) => !question) ||
-          answers.length !== questions.length
+          answers.length !== questions.length ||
+          answers.some((answer, index) => answer >= questions[index].a.length)
         ) {
           const error = new Error("Submission does not match the quiz session");
           error.statusCode = 400;
