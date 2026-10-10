@@ -481,71 +481,109 @@ export function renderChapterDetail(index, userData, eventHandlers) {
     document.getElementById('show-quiz-btn').onclick = () => eventHandlers.onTakeQuiz(chapter.gameType);
 }
 
-export function showQuizDialog(quizType, onQuizComplete) {
-    const questionsForType = quizBank[quizType];
-    if (!questionsForType || questionsForType.length === 0) {
-        showToast('No quiz available for this topic yet.', 'bg-gray-500');
+export function showQuizDialog(quizType, onQuizComplete, serverQuiz) {
+    if (!serverQuiz?.sessionId || !Array.isArray(serverQuiz.questions) || !serverQuiz.questions.length) {
+        showToast('Secure quiz session could not be started. Please try again.', 'bg-red-500');
         return;
     }
 
-    const selectedQuestions = [...questionsForType].sort(() => 0.5 - Math.random()).slice(0, 10);
+    const selectedQuestions = serverQuiz.questions;
+    const answers = new Array(selectedQuestions.length).fill(null);
     let currentQuestionIndex = 0;
-    let score = 0;
+    let submitting = false;
 
+    document.getElementById('quiz-modal')?.remove();
     document.body.insertAdjacentHTML('beforeend', `<div id="quiz-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center p-4 z-50"><div id="quiz-content" class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl w-full transform transition-all duration-300 scale-95 opacity-0"></div></div>`);
     setTimeout(() => document.getElementById('quiz-content')?.classList.remove('scale-95', 'opacity-0'), 50);
 
     function renderQuestion() {
         const question = selectedQuestions[currentQuestionIndex];
         const quizContent = document.getElementById('quiz-content');
+        if (!quizContent) return;
         quizContent.innerHTML = `
             <div class="mb-4">
-                <div class="flex justify-between items-center mb-2"><h3 class="text-lg font-bold text-blue-800 dark:text-blue-300">Question ${currentQuestionIndex + 1} / ${selectedQuestions.length}</h3><p class="font-bold text-green-600">Score: ${score}</p></div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-bold text-blue-800 dark:text-blue-300">Question ${currentQuestionIndex + 1} / ${selectedQuestions.length}</h3>
+                    <p class="font-bold text-gray-600 dark:text-gray-300">Answer all questions</p>
+                </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${((currentQuestionIndex + 1) / selectedQuestions.length) * 100}%"></div></div>
             </div>
-            <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">${question.q}</p>
-            <div id="quiz-options" class="space-y-3">${question.a.map((option, index) => `<button data-index="${index}" class="quiz-option w-full text-left p-4 border-2 border-gray-300 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-blue-400 transition-all flex justify-between items-center"><span>${option}</span><span class="feedback-icon"></span></button>`).join('')}</div>`;
-
-        document.querySelectorAll('.quiz-option').forEach(button => {
-            button.onclick = (e) => {
-                const selectedIndex = parseInt(e.currentTarget.dataset.index);
-                if (selectedIndex === question.correct) {
-                    score += 20; // 20 points per correct answer
-                    e.currentTarget.classList.add('bg-green-100', 'dark:bg-green-900/50', 'border-green-500');
-                    e.currentTarget.querySelector('.feedback-icon').innerHTML = '✔️';
-                } else {
-                    e.currentTarget.classList.add('bg-red-100', 'dark:bg-red-900/50', 'border-red-500');
-                    e.currentTarget.querySelector('.feedback-icon').innerHTML = '❌';
-                    const correctButton = document.querySelector(`.quiz-option[data-index="${question.correct}"]`);
-                    correctButton.classList.add('bg-green-100', 'dark:bg-green-900/50', 'border-green-500');
-                    correctButton.querySelector('.feedback-icon').innerHTML = '✔️';
-                }
-                document.querySelectorAll('.quiz-option').forEach(btn => btn.disabled = true);
-                setTimeout(() => {
-                    currentQuestionIndex++;
-                    (currentQuestionIndex < selectedQuestions.length) ? renderQuestion() : endQuiz();
-                }, 1500);
+            <p class="text-lg text-gray-600 dark:text-gray-300 mb-6"></p>
+            <div id="quiz-options" class="space-y-3"></div>
+            <div class="flex gap-3 mt-6">
+                <button id="quiz-back-btn" class="flex-1 border border-gray-300 dark:border-gray-600 dark:text-gray-200 font-bold py-3 rounded-xl" ${currentQuestionIndex === 0 ? 'disabled' : ''}>Back</button>
+                <button id="quiz-next-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl">${currentQuestionIndex === selectedQuestions.length - 1 ? 'Submit Quiz' : 'Next'}</button>
+            </div>`;
+        quizContent.querySelector('p.text-lg').textContent = question.question;
+        const options = quizContent.querySelector('#quiz-options');
+        question.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'quiz-option w-full text-left p-4 border-2 rounded-lg transition-all dark:text-gray-200';
+            button.textContent = option;
+            if (answers[currentQuestionIndex] === index) {
+                button.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/40');
+            } else {
+                button.classList.add('border-gray-300', 'dark:border-gray-600', 'hover:bg-gray-100', 'dark:hover:bg-slate-700');
+            }
+            button.onclick = () => {
+                answers[currentQuestionIndex] = index;
+                renderQuestion();
             };
+            options.appendChild(button);
         });
+
+        document.getElementById('quiz-back-btn').onclick = () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+            }
+        };
+        document.getElementById('quiz-next-btn').onclick = async () => {
+            if (answers[currentQuestionIndex] === null) {
+                showToast('Choose an answer before continuing.', 'bg-amber-500');
+                return;
+            }
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+                return;
+            }
+            if (answers.some(answer => answer === null) || submitting) return;
+            submitting = true;
+            const nextButton = document.getElementById('quiz-next-btn');
+            if (nextButton) {
+                nextButton.disabled = true;
+                nextButton.textContent = 'Verifying answers…';
+            }
+            try {
+                const result = await onQuizComplete({ sessionId: serverQuiz.sessionId, answers });
+                renderResult(result);
+            } catch (error) {
+                submitting = false;
+                showToast(error.message || 'Could not submit quiz. Please try again.', 'bg-red-500');
+                if (nextButton) {
+                    nextButton.disabled = false;
+                    nextButton.textContent = 'Submit Quiz';
+                }
+            }
+        };
     }
 
-    function endQuiz() {
+    function renderResult(result) {
         const quizContent = document.getElementById('quiz-content');
-        quizContent.innerHTML = `<div class="text-center relative"><div class="text-5xl sm:text-6xl mb-4">🎉</div><h3 class="text-2xl sm:text-3xl font-bold text-blue-800 dark:text-blue-300 mb-4">Quiz Complete!</h3><p class="text-lg sm:text-xl text-gray-700 dark:text-gray-300 mb-2">You scored</p><p class="text-4xl sm:text-5xl font-extrabold text-green-600 mb-6">${score} / ${selectedQuestions.length * 20}</p></div><button id="close-quiz-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors">Close</button>`;
-        
-        const confettiContainer = document.createElement('div');
-        confettiContainer.className = 'absolute inset-0 overflow-hidden pointer-events-none';
-        for (let i = 0; i < 100; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            confetti.style.setProperty('--x', Math.random() * 100);
-            confetti.style.setProperty('--r', Math.random() * 360);
-            confettiContainer.appendChild(confetti);
-        }
-        quizContent.querySelector('.text-center').prepend(confettiContainer);
-
+        if (!quizContent) return;
+        quizContent.innerHTML = `
+            <div class="text-center">
+                <div class="text-5xl sm:text-6xl mb-4">🎉</div>
+                <h3 class="text-2xl sm:text-3xl font-bold text-blue-800 dark:text-blue-300 mb-4">Quiz Complete!</h3>
+                <p class="text-lg text-gray-700 dark:text-gray-300 mb-2">Verified score</p>
+                <p class="text-4xl sm:text-5xl font-extrabold text-green-600 mb-2">${Number(result.score)} / ${Number(result.maxScore)}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Total points: ${Number(result.totalScore)}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">Progress and achievements saved by the server.</p>
+                <button id="close-quiz-btn" class="w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors">Close</button>
+            </div>`;
         document.getElementById('close-quiz-btn').onclick = () => {
-            onQuizComplete(score);
             hideQuizDialog();
         };
     }
